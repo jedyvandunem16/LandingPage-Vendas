@@ -199,6 +199,14 @@ export async function POST(req: Request) {
     }
   }
 
+  /* ── APAGAR ENCOMENDA ── */
+  if (a === "delete") {
+    try {
+      await db.order.delete({ where: { id } });
+    } catch {}
+    return back;
+  }
+
   return back;
 }
 
