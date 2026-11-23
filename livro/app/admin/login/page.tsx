@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function Login() {
+function LoginForm() {
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -106,4 +106,13 @@ export default function Login() {
     </main>
   );
 }
+
+export default function Login() {
+  return (
+    <Suspense fallback={<main className="box" style={{ maxWidth: 420, margin: "60px auto", textAlign: "center" }}>A carregar...</main>}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
 
