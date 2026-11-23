@@ -67,14 +67,14 @@ function LoginForm() {
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
-                fontSize: 16,
+                fontSize: 12,
+                fontWeight: 600,
                 padding: "4px 8px",
-                color: "var(--muted)",
+                color: "var(--primary)",
                 boxShadow: "none",
               }}
-              title={showPassword ? "Ocultar" : "Mostrar"}
             >
-              {showPassword ? "🙈" : "👁️"}
+              {showPassword ? "Ocultar" : "Mostrar"}
             </button>
           </div>
         </div>
