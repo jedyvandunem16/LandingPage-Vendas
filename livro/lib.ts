@@ -1,9 +1,11 @@
 import { PrismaClient } from "@prisma/client";
+import { withAccelerate } from "@prisma/extension-accelerate";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
-export const db: PrismaClient = (globalThis as any).p ?? ((globalThis as any).p = new PrismaClient());
+const prisma = (globalThis as any).p ?? ((globalThis as any).p = new PrismaClient().$extends(withAccelerate()));
+export const db = prisma as unknown as PrismaClient;
 export function requestThrottleKey(req: Request, scope: string) {
   const ip = req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   return `${scope}:${crypto.createHash("sha256").update(ip).digest("hex")}`;
