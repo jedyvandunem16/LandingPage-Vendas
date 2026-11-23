@@ -1,0 +1,9 @@
+{
+  "name": "landing-manual-vendas-root",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix livro run dev",
+    "build": "npm --prefix livro run build",
+    "start": "npm --prefix livro run start"
+  }
+}

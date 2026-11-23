@@ -1,0 +1,58 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Order {
+  id                String    @id @default(cuid())
+  ref               String    @unique
+  name              String
+  email             String
+  phone             String
+  province          String?
+  notes             String?
+  amount            Int
+  status            String    @default("AGUARDANDO_PAGAMENTO")
+  proofPath         String?
+  proofMethod       String?
+  proofHolder       String?
+  proofAmount       Int?
+  proofDate         String?
+  adminNote         String?
+  approvedAt        DateTime?
+  deadline          DateTime?
+  downloadToken     String?   @unique
+  downloadExpiresAt DateTime?
+  sentAt            DateTime?
+  sendStatus        String?
+  sendError         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  events            Event[]
+
+  @@index([email])
+  @@index([status])
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  text      String
+  at        DateTime @default(now())
+
+  @@index([orderId])
+}
+
+model RequestThrottle {
+  key             String    @id
+  attempts        Int       @default(1)
+  windowStartedAt DateTime  @default(now())
+  lockedUntil     DateTime?
+
+  @@index([lockedUntil])
+}
