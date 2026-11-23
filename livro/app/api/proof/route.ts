@@ -34,12 +34,18 @@ export async function POST(req: Request) {
 
   let proofPath: string;
   try {
-    const blob = await put(`proofs/${o.ref}/${crypto.randomBytes(12).toString("hex")}.${fileType.ext}`, uploadBody, {
-      access: "private", addRandomSuffix: false, contentType: file.type, cacheControlMaxAge: 60,
-    });
-    proofPath = blob.pathname;
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const blob = await put(`proofs/${o.ref}/${crypto.randomBytes(12).toString("hex")}.${fileType.ext}`, uploadBody, {
+        access: "private", addRandomSuffix: false, contentType: file.type, cacheControlMaxAge: 60,
+      });
+      proofPath = blob.pathname;
+    } else {
+      // Guarda diretamente no banco de dados como data URL em base64 (independente de storage externo)
+      proofPath = `data:${file.type};base64,${bytes.toString("base64")}`;
+    }
   } catch {
-    return err("Não foi possível guardar o comprovativo no armazenamento. Tenta novamente.", 503);
+    // Fallback: se o Blob falhar por qualquer motivo, guarda no banco de dados
+    proofPath = `data:${file.type};base64,${bytes.toString("base64")}`;
   }
   try {
     const result = await db.order.updateMany({
