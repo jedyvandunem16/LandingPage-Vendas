@@ -1,0 +1,20 @@
+# ==============================================================================
+# VARIÁVEIS DE AMBIENTE PRONTAS PARA A VERCEL
+# Dica: Podes copiar todo este bloco e colar diretamente na Vercel!
+# ==============================================================================
+
+DATABASE_URL="postgresql://neondb_owner:A_TUA_SENHA_DO_NEON@ep-wispy-mode-beisyiw9-pooler.c-9.us-east-2.aws.neon.tech/neondb?sslmode=require"
+AUTH_SECRET="a562b3c7231429ba0709142a382f8ffbbf5f3804e01e44f07ee6d778ae27c1a3"
+APP_URL="https://o-teu-dominio-na-vercel.vercel.app"
+ADMIN_EMAIL="antonioguerreiro518@gmail.com"
+ADMIN_PASSWORD_HASH="\$2a\$10\$DZ08USXSQ.ZRAfzq4i5sue9dmvRYShmCmn.xLdscDnmve7Zar5ANq"
+BOOK_TITLE="Manual de Gestão de Vendas"
+BOOK_PRICE_KZ="3775"
+BOOK_BLOB_PATH="books/livro.pdf"
+SUPPORT_EMAIL="antonioguerreiro518@gmail.com"
+MAIL_FROM="Empire GA <antonioguerreiro518@gmail.com>"
+ADMIN_NOTIFY_EMAIL="antonioguerreiro518@gmail.com"
+PAY_HOLDER="Domingos Muginga António"
+PAY_BANK=""
+PAY_IBAN="0055.0000.8169.4888.1017.0"
+PAY_MULTICAIXA="941583066"
