@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 
 export async function POST(req: Request) {
   if (!(await isAdmin())) return new NextResponse("Não autorizado", { status: 401 });
@@ -32,6 +33,9 @@ export async function POST(req: Request) {
 
   /* ── Função de envio simples (texto) ── */
   async function sendSimple(to: string, subject: string, text: string) {
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      throw new Error("SMTP não configurado (define SMTP_USER e SMTP_PASS nas variáveis da Vercel).");
+    }
     const t = makeTransporter();
     await t.sendMail({
       from: process.env.MAIL_FROM || process.env.SMTP_USER,
@@ -41,77 +45,99 @@ export async function POST(req: Request) {
     });
   }
 
-  /* ── Função de envio com PDF em anexo ── */
-  async function sendWithBook(to: string, name: string) {
-    const bookTitle = process.env.BOOK_TITLE || "Manual de Gestão de Vendas";
-    const support = process.env.SUPPORT_EMAIL || process.env.ADMIN_EMAIL || "";
-
-    // Localiza o PDF: variável de ambiente ou pasta storage/
-    const pdfPath =
-      process.env.BOOK_PDF_PATH ||
-      path.join(process.cwd(), "storage", "livro.pdf");
-
-    if (!fs.existsSync(pdfPath)) {
-      throw new Error(
-        `PDF não encontrado em: ${pdfPath}. Coloca o ficheiro livro.pdf na pasta storage/ do projeto.`
-      );
+  /* ── Função de envio com PDF em anexo e link de download ── */
+  async function sendWithBook(to: string, name: string, token: string) {
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      throw new Error("SMTP não configurado (define SMTP_USER e SMTP_PASS nas variáveis da Vercel).");
     }
 
+    const bookTitle = process.env.BOOK_TITLE || "Manual de Gestão de Vendas";
+    const support = process.env.SUPPORT_EMAIL || process.env.ADMIN_EMAIL || "";
+    const appUrl = (process.env.APP_URL || "https://empire-ga.vercel.app").replace(/\/$/, "");
+    const downloadUrl = `${appUrl}/api/download/${token}`;
+
+    // Localiza o PDF se existir
+    const candidatePaths = [
+      process.env.BOOK_PDF_PATH,
+      path.join(process.cwd(), "storage", "livro.pdf"),
+      path.join(process.cwd(), "public", "livro.pdf"),
+    ].filter(Boolean) as string[];
+
+    const existingPdf = candidatePaths.find((p) => fs.existsSync(p));
+
     const t = makeTransporter();
-    await t.sendMail({
+    const mailOptions: any = {
       from: process.env.MAIL_FROM || process.env.SMTP_USER,
       to,
-      subject: `📘 O teu livro: ${bookTitle}`,
+      subject: `✅ Pagamento Confirmado — O teu ${bookTitle}`,
       text: [
         `Olá ${name},`,
         ``,
-        `Obrigado pela tua compra! O pagamento foi confirmado e tens aqui o teu livro em anexo.`,
+        `Confirmámos o teu pagamento! Muito obrigado pela tua confiança.`,
         ``,
-        `Título: ${bookTitle}`,
+        `📘 ${bookTitle}`,
+        ``,
+        `Tens o ficheiro anexado a este e-mail.`,
+        `Também podes descarregar diretamente através do seguinte link seguro:`,
+        `${downloadUrl}`,
         ``,
         `Boas vendas e muito sucesso! 🚀`,
         ``,
-        `Qualquer dúvida, contacta-nos: ${support}`,
+        `Suporte: ${support}`,
         ``,
         `Atenciosamente,`,
         `Empire GA`,
       ].join("\n"),
-      attachments: [
+    };
+
+    if (existingPdf) {
+      mailOptions.attachments = [
         {
           filename: `${bookTitle}.pdf`,
-          path: pdfPath,
+          path: existingPdf,
           contentType: "application/pdf",
         },
-      ],
-    });
+      ];
+    }
+
+    await t.sendMail(mailOptions);
   }
 
-  /* ── APROVAR pagamento ── */
+  /* ── APROVAR pagamento (Confirma e envia o livro de imediato) ── */
   if (a === "approve" && o.status === "EM_VALIDACAO") {
     const now = new Date();
+    const token = o.downloadToken || crypto.randomBytes(32).toString("hex");
+
+    let emailSent = false;
+    let emailErrorMsg = "";
+
+    try {
+      await sendWithBook(o.email, o.name, token);
+      emailSent = true;
+    } catch (err: any) {
+      emailErrorMsg = String(err.message || "Erro no envio").slice(0, 250);
+    }
+
     await db.order.update({
       where: { id },
       data: {
-        status: "PAGAMENTO_CONFIRMADO",
+        status: emailSent ? "LIVRO_ENVIADO" : "PAGAMENTO_CONFIRMADO",
         approvedAt: now,
         deadline: new Date(+now + 864e5),
-        ...ev("Pagamento aprovado"),
+        downloadToken: token,
+        downloadExpiresAt: new Date(+now + 30 * 864e5),
+        sentAt: emailSent ? now : null,
+        sendStatus: emailSent
+          ? "Livro enviado por e-mail com sucesso"
+          : `Aprovado. E-mail pendente: ${emailErrorMsg}`,
+        sendError: emailSent ? null : emailErrorMsg,
+        ...ev(
+          emailSent
+            ? `Pagamento aprovado e livro enviado por e-mail para ${o.email}`
+            : `Pagamento aprovado. Aviso: ${emailErrorMsg}`
+        ),
       },
     });
-    // Aviso ao cliente: pagamento confirmado, livro a caminho
-    sendSimple(
-      o.email,
-      "✅ Pagamento confirmado — Manual de Gestão de Vendas",
-      [
-        `Olá ${o.name},`,
-        ``,
-        `Confirmámos o teu pagamento (ref: ${o.ref}).`,
-        `Vais receber o livro por e-mail em, no máximo, 24 horas.`,
-        ``,
-        `Obrigado pela tua compra!`,
-        `Empire GA`,
-      ].join("\n")
-    ).catch(() => {});
   }
 
   /* ── REJEITAR pagamento ── */
@@ -134,28 +160,30 @@ export async function POST(req: Request) {
         `Motivo: ${note || "comprovativo ilegível ou valor incorreto"}.`,
         ``,
         `Podes enviar um novo comprovativo em:`,
-        `${process.env.APP_URL}/pagamento/${o.ref}`,
+        `${process.env.APP_URL || "https://empire-ga.vercel.app"}/pagamento/${o.ref}`,
         ``,
         `Empire GA`,
       ].join("\n")
     ).catch(() => {});
   }
 
-  /* ── ENVIAR LIVRO por email (com PDF em anexo) ── */
+  /* ── REENVIAR LIVRO por e-mail ── */
   if (
     a === "send" &&
     ["PAGAMENTO_CONFIRMADO", "LIVRO_ENVIADO", "FALHA_ENVIO"].includes(o.status)
   ) {
+    const token = o.downloadToken || crypto.randomBytes(32).toString("hex");
     try {
-      await sendWithBook(o.email, o.name);
+      await sendWithBook(o.email, o.name, token);
       await db.order.update({
         where: { id },
         data: {
           status: "LIVRO_ENVIADO",
           sentAt: new Date(),
-          sendStatus: "Livro enviado por email (PDF em anexo)",
+          downloadToken: token,
+          sendStatus: "Livro enviado por e-mail com sucesso",
           sendError: null,
-          ...ev("Livro enviado para " + o.email),
+          ...ev("Livro reenviado para " + o.email),
         },
       });
     } catch (e: any) {
@@ -163,9 +191,9 @@ export async function POST(req: Request) {
         where: { id },
         data: {
           status: "FALHA_ENVIO",
-          sendStatus: "Falha no envio",
+          sendStatus: "Falha no envio de e-mail",
           sendError: String(e.message).slice(0, 300),
-          ...ev("Falha no envio: " + String(e.message).slice(0, 200)),
+          ...ev("Falha no reenvio: " + String(e.message).slice(0, 200)),
         },
       });
     }
@@ -173,4 +201,5 @@ export async function POST(req: Request) {
 
   return back;
 }
+
 

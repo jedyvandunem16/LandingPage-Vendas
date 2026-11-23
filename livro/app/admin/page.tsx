@@ -158,10 +158,10 @@ export default async function Admin() {
                       </td>
                       <td>
                         {o.status === "EM_VALIDACAO" && (
-                          <>
-                            <Act id={o.id} a="approve" label="Aprovar" />
-                            <Act id={o.id} a="reject" label="Rejeitar" note />
-                          </>
+                          <div style={{ display: "flex", gap: "6px", flexDirection: "column" }}>
+                            <Act id={o.id} a="approve" label="✓ Aprovar e Enviar Livro" />
+                            <Act id={o.id} a="reject" label="✕ Rejeitar" note />
+                          </div>
                         )}
                         {["PAGAMENTO_CONFIRMADO", "FALHA_ENVIO", "LIVRO_ENVIADO"].includes(o.status) && (
                           <Act
