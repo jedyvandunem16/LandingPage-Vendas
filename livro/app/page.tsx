@@ -145,7 +145,7 @@ export default function Home() {
           </span>
         </div>
         <div className="footer-credits">
-          <span>feito por Jedy Van-Dúnem</span>
+          <span>Feito por_jedyvandunem16@gmail.com</span>
         </div>
       </footer>
     </main>
