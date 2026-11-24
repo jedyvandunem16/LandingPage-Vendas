@@ -16,8 +16,8 @@ export default async function Pay({ params }: { params: { ref: string } }) {
     ["Multicaixa Express", e.PAY_MULTICAIXA || "941583066"],
   ].filter((r) => r[1]);
 
-  const isApproved = ["PAGAMENTO_CONFIRMADO", "LIVRO_ENVIADO"].includes(o.status);
-  const downloadUrl = o.downloadToken ? `/api/download/${o.downloadToken}` : null;
+  const isApproved = ["PAGAMENTO_CONFIRMADO", "LIVRO_ENVIADO", "FALHA_ENVIO"].includes(o.status);
+  const downloadUrl = o.downloadToken ? `/api/download/${o.downloadToken}` : `/livro.pdf`;
 
   return (
     <main className="box" style={{ maxWidth: 600, margin: "40px auto", padding: "32px 24px" }}>

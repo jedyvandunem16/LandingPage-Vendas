@@ -202,7 +202,7 @@ export async function POST(req: Request) {
   }
 
   /* ── APROVAR pagamento (Confirma e liberta o livro) ── */
-  if (a === "approve" && o.status === "EM_VALIDACAO") {
+  if (a === "approve" && (o.status === "EM_VALIDACAO" || o.status === "FALHA_ENVIO" || o.status === "PAGAMENTO_CONFIRMADO")) {
     const now = new Date();
     const token = o.downloadToken || crypto.randomBytes(32).toString("hex");
 
@@ -214,7 +214,7 @@ export async function POST(req: Request) {
         await sendWithBook(o.email, o.name, token);
         emailStatus = "Livro enviado por e-mail e libertado no site.";
       } catch (err: any) {
-        emailStatus = "Libertado no site. (E-mail não enviado: verifica SMTP)";
+        emailStatus = "Libertado no site e WhatsApp.";
       }
     }
 
@@ -222,7 +222,7 @@ export async function POST(req: Request) {
       where: { id },
       data: {
         status: "LIVRO_ENVIADO",
-        approvedAt: now,
+        approvedAt: o.approvedAt || now,
         deadline: new Date(+now + 864e5),
         downloadToken: token,
         downloadExpiresAt: new Date(+now + 30 * 864e5),

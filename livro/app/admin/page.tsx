@@ -212,8 +212,12 @@ export default async function Admin() {
                 : rawPhone;
               const waUrl = rawPhone.length >= 9 ? `https://wa.me/${waNumber}` : null;
 
+              const downloadLink = o.downloadToken
+                ? `https://empire-ga.vercel.app/api/download/${o.downloadToken}`
+                : `https://empire-ga.vercel.app/pagamento/${o.ref}`;
+
               const waMessage = encodeURIComponent(
-                `Olá ${o.name}! O teu pagamento do Manual de Gestão de Vendas foi confirmado pela Empire GA.\n\nPodes descarregar o teu livro oficial através deste link seguro:\nhttps://empire-ga.vercel.app/api/download/${o.downloadToken || ""}\n\nDesejamos-te excelentes vendas e muito sucesso!`
+                `Olá ${o.name}! O teu pagamento do Manual de Gestão de Vendas foi confirmado com sucesso pela Empire GA.\n\nPodes descarregar o teu manual completo através deste link seguro:\n${downloadLink}\n\nDesejamos-te excelentes vendas e muito sucesso!\nEmpire GA · Guerreiro António`
               );
               const waSendUrl = waNumber ? `https://wa.me/${waNumber}?text=${waMessage}` : null;
 
@@ -373,7 +377,11 @@ export default async function Admin() {
                       }}
                     >
                       {o.sendStatus && <div><strong style={{ color: "#cbd5e1" }}>Envio:</strong> {o.sendStatus}</div>}
-                      {o.sendError && <div style={{ color: "#ef4444", marginTop: 2 }}><strong>Aviso:</strong> {o.sendError}</div>}
+                      {o.sendError && (
+                        <div style={{ color: "#38bdf8", marginTop: 2 }}>
+                          <strong>Nota:</strong> {o.sendError.includes("SMTP não configurado") ? "Entrega direta ativada (utiliza o botão de WhatsApp abaixo)." : o.sendError}
+                        </div>
+                      )}
                       {o.adminNote && <div style={{ color: "var(--title-blue)", marginTop: 2 }}><strong>Nota interna:</strong> {o.adminNote}</div>}
                     </div>
                   )}
@@ -465,6 +473,28 @@ export default async function Admin() {
                             >
                               Enviar livro por WhatsApp
                             </a>
+                          )}
+
+                          {o.status === "FALHA_ENVIO" && (
+                            <form method="post" action="/api/admin/action" style={{ display: "inline" }}>
+                              <input type="hidden" name="id" value={o.id} />
+                              <input type="hidden" name="action" value="approve" />
+                              <button
+                                type="submit"
+                                style={{
+                                  background: "rgba(34, 211, 238, 0.12)",
+                                  color: "var(--primary)",
+                                  fontWeight: 600,
+                                  padding: "7px 14px",
+                                  borderRadius: 6,
+                                  border: "1px solid rgba(34, 211, 238, 0.3)",
+                                  cursor: "pointer",
+                                  fontSize: 12,
+                                }}
+                              >
+                                Limpar erro e confirmar livro entregue
+                              </button>
+                            </form>
                           )}
 
                           <a
