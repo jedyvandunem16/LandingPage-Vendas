@@ -201,39 +201,35 @@ export async function POST(req: Request) {
     await t.sendMail(mailOptions);
   }
 
-  /* ── APROVAR pagamento (Confirma e envia o livro de imediato) ── */
+  /* ── APROVAR pagamento (Confirma e liberta o livro) ── */
   if (a === "approve" && o.status === "EM_VALIDACAO") {
     const now = new Date();
     const token = o.downloadToken || crypto.randomBytes(32).toString("hex");
 
-    let emailSent = false;
-    let emailErrorMsg = "";
-
-    try {
-      await sendWithBook(o.email, o.name, token);
-      emailSent = true;
-    } catch (err: any) {
-      emailErrorMsg = String(err.message || "Erro no envio").slice(0, 250);
+    let emailStatus = "Acesso libertado no site e WhatsApp.";
+    
+    // Tenta enviar e-mail se SMTP estiver configurado
+    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+      try {
+        await sendWithBook(o.email, o.name, token);
+        emailStatus = "Livro enviado por e-mail e libertado no site.";
+      } catch (err: any) {
+        emailStatus = "Libertado no site. (E-mail não enviado: verifica SMTP)";
+      }
     }
 
     await db.order.update({
       where: { id },
       data: {
-        status: emailSent ? "LIVRO_ENVIADO" : "PAGAMENTO_CONFIRMADO",
+        status: "LIVRO_ENVIADO",
         approvedAt: now,
         deadline: new Date(+now + 864e5),
         downloadToken: token,
         downloadExpiresAt: new Date(+now + 30 * 864e5),
-        sentAt: emailSent ? now : null,
-        sendStatus: emailSent
-          ? "Livro enviado por e-mail com sucesso"
-          : `Aprovado. E-mail pendente: ${emailErrorMsg}`,
-        sendError: emailSent ? null : emailErrorMsg,
-        ...ev(
-          emailSent
-            ? `Pagamento aprovado e livro enviado por e-mail para ${o.email}`
-            : `Pagamento aprovado. Aviso: ${emailErrorMsg}`
-        ),
+        sentAt: now,
+        sendStatus: emailStatus,
+        sendError: null,
+        ...ev(`Pagamento aprovado. ${emailStatus}`),
       },
     });
   }

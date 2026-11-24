@@ -435,25 +435,47 @@ export default async function Admin() {
                       )}
 
                       {["PAGAMENTO_CONFIRMADO", "FALHA_ENVIO", "LIVRO_ENVIADO"].includes(o.status) && (
-                        <form method="post" action="/api/admin/action">
-                          <input type="hidden" name="id" value={o.id} />
-                          <input type="hidden" name="action" value="send" />
-                          <button
-                            type="submit"
+                        <>
+                          {waUrl && (
+                            <a
+                              href={`https://wa.me/244${cleanPhone.slice(-9)}?text=${encodeURIComponent(
+                                `Olá ${o.name}! O teu pagamento do Manual de Gestão de Vendas foi confirmado pela Empire GA. Podes descarregar o teu livro oficial agora através deste link seguro: https://empire-ga.vercel.app/api/download/${o.downloadToken || ""} - Desejamos-te excelentes vendas!`
+                              )}`}
+                              target="_blank"
+                              style={{
+                                background: "#10b981",
+                                color: "#060e12",
+                                fontWeight: 700,
+                                padding: "7px 14px",
+                                borderRadius: 6,
+                                textDecoration: "none",
+                                fontSize: 12,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              Enviar livro por WhatsApp
+                            </a>
+                          )}
+
+                          <a
+                            href={`/pagamento/${o.ref}`}
+                            target="_blank"
                             style={{
                               background: "rgba(34, 211, 238, 0.08)",
                               color: "var(--primary)",
                               border: "1px solid rgba(34, 211, 238, 0.25)",
                               padding: "7px 14px",
                               borderRadius: 6,
-                              cursor: "pointer",
+                              textDecoration: "none",
                               fontSize: 12,
                               fontWeight: 600,
                             }}
                           >
-                            {o.status === "LIVRO_ENVIADO" ? "Reenviar por e-mail" : "Enviar livro por e-mail"}
-                          </button>
-                        </form>
+                            Ver página com download
+                          </a>
+                        </>
                       )}
                     </div>
 
