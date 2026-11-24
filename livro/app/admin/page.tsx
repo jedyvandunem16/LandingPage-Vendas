@@ -204,8 +204,18 @@ export default async function Admin() {
                 border: "var(--line)",
               };
 
-              const cleanPhone = (o.phone || "").replace(/[^0-9]/g, "");
-              const waUrl = cleanPhone.length >= 9 ? `https://wa.me/244${cleanPhone.slice(-9)}` : null;
+              const rawPhone = (o.phone || "").replace(/[^0-9]/g, "");
+              const waNumber = rawPhone.startsWith("244") && rawPhone.length === 12
+                ? rawPhone
+                : rawPhone.length >= 9
+                ? `244${rawPhone.slice(-9)}`
+                : rawPhone;
+              const waUrl = rawPhone.length >= 9 ? `https://wa.me/${waNumber}` : null;
+
+              const waMessage = encodeURIComponent(
+                `Olá ${o.name}! O teu pagamento do Manual de Gestão de Vendas foi confirmado pela Empire GA.\n\nPodes descarregar o teu livro oficial através deste link seguro:\nhttps://empire-ga.vercel.app/api/download/${o.downloadToken || ""}\n\nDesejamos-te excelentes vendas e muito sucesso!`
+              );
+              const waSendUrl = waNumber ? `https://wa.me/${waNumber}?text=${waMessage}` : null;
 
               return (
                 <div
@@ -436,20 +446,18 @@ export default async function Admin() {
 
                       {["PAGAMENTO_CONFIRMADO", "FALHA_ENVIO", "LIVRO_ENVIADO"].includes(o.status) && (
                         <>
-                          {waUrl && (
+                          {waSendUrl && (
                             <a
-                              href={`https://wa.me/244${cleanPhone.slice(-9)}?text=${encodeURIComponent(
-                                `Olá ${o.name}! O teu pagamento do Manual de Gestão de Vendas foi confirmado pela Empire GA. Podes descarregar o teu livro oficial agora através deste link seguro: https://empire-ga.vercel.app/api/download/${o.downloadToken || ""} - Desejamos-te excelentes vendas!`
-                              )}`}
+                              href={waSendUrl}
                               target="_blank"
                               style={{
                                 background: "#10b981",
                                 color: "#060e12",
                                 fontWeight: 700,
-                                padding: "7px 14px",
+                                padding: "8px 16px",
                                 borderRadius: 6,
                                 textDecoration: "none",
-                                fontSize: 12,
+                                fontSize: 13,
                                 display: "inline-flex",
                                 alignItems: "center",
                                 gap: 6,
